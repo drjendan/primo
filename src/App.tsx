@@ -48,16 +48,15 @@ type Analysis = {
   recommendations: string[];
   pathway: string;
 };
-const nav: [Page, any, string][] = [
+const nav: [Page, any, string, boolean?][] = [
   ["dashboard", Home, "Dashboard"],
-  ["repository", FolderOpen, "Process Repository"],
   ["owner", UserRound, "Process Owner Discovery"],
-  ["workspace", ClipboardList, "Process Workspace"],
-  ["bpmn", GitBranch, "Current-State Map"],
-  ["diagnosis", FileSearch, "Roadblocks & Score"],
-  ["improvements", Lightbulb, "Recommendations"],
+  ["workspace", ClipboardList, "Process Description", true],
+  ["bpmn", GitBranch, "Current-State Map", true],
+  ["diagnosis", FileSearch, "Roadblocks & Improvement Score", true],
+  ["improvements", Lightbulb, "Recommendations", true],
   ["readiness", ShieldCheck, "AI & Automation Readiness"],
-  ["reports", BarChart3, "PrimeOne Handoff"],
+  ["repository", FolderOpen, "Process Repository"],
 ];
 const numberFrom = (s: string, fallback: number) =>
   Number((s || "").match(/\d+(\.\d+)?/)?.[0] || fallback);
@@ -352,15 +351,19 @@ function App() {
       <div className="shell">
         <aside className={collapsed ? "collapsed" : ""}>
           <nav>
-            {nav.map(([id, I, label]) => (
-              <button
-                className={page === id ? "active" : ""}
-                onClick={() => setPage(id)}
-                key={id}
-              >
-                <I />
-                <span>{label}</span>
-              </button>
+            {nav.map(([id, I, label, child]) => (
+              <div className={child ? "navChild" : ""} key={id}>
+                {id === "workspace" && (
+                  <small className="navSection">PROCESS WORKSPACE</small>
+                )}
+                <button
+                  className={page === id ? "active" : ""}
+                  onClick={() => setPage(id)}
+                >
+                  <I />
+                  <span>{label}</span>
+                </button>
+              </div>
             ))}
           </nav>
           <button className="collapse" onClick={() => setCollapsed(!collapsed)}>
@@ -666,22 +669,6 @@ function Guided({
         title="Process Owner Discovery"
         sub="Describe the business need and how the process works today."
       />
-      <div className="role">
-        <span>
-          <UserRound />
-        </span>
-        <div>
-          <b>Your role in this MVP</b>
-          <p>
-            You provide the process purpose, current steps, decisions,
-            roadblocks, measures, systems, and desired outcome. Primo converts
-            this information into a map and assessment.
-          </p>
-        </div>
-        <strong>
-          {Math.min(step, qs.length)} of {qs.length}
-        </strong>
-      </div>
       <div className="guideShell">
         <div className="questionList">
           <div className="progress">
@@ -762,17 +749,25 @@ function Workspace({ go }: { go: (p: Page) => void }) {
         eyebrow="FINANCE · ACTIVE PROCESS"
         title="Vendor Invoice Review"
         sub="Current-state discovery and assessment workspace"
-        action={<button className="outline">Assign reviewer</button>}
+        action={
+          <div className="actions">
+            <button className="outline">Assign reviewer</button>
+            <button className="primary" onClick={() => go("reports")}>
+              Send to PrimeOne
+              <ArrowRight />
+            </button>
+          </div>
+        }
       />
       <div className="tabs">
         {[
-          ["Overview", "workspace"],
+          ["Process Description", "workspace"],
           ["Discovery", "sme"],
           ["Process Map", "bpmn"],
           ["Diagnosis", "diagnosis"],
           ["Improvements", "improvements"],
           ["Readiness", "readiness"],
-          ["Reports", "reports"],
+          ["PrimeOne Handoff", "reports"],
         ].map((x) => (
           <button
             className={x[1] === "workspace" ? "active" : ""}
@@ -881,6 +876,7 @@ function Bpmn({
     modeler = useRef<any>();
   const [mapView, setMapView] = useState<"current" | "future">("current");
   const [futureApproved, setFutureApproved] = useState(false);
+  const [editMode, setEditMode] = useState(false);
   const generatedStepCount = (answers.steps || "")
     .split(/\n|\d+[.)]|, then | then |,/i)
     .map((x) => x.trim())
@@ -901,6 +897,10 @@ function Bpmn({
       .then(() => {
         requestAnimationFrame(() =>
           requestAnimationFrame(() => {
+            const palette = host.current?.querySelector(
+              ".djs-palette",
+            ) as HTMLElement | null;
+            if (palette) palette.style.display = editMode ? "block" : "none";
             const canvas = modeler.current?.get("canvas");
             canvas?.resized();
             canvas?.zoom("fit-viewport");
@@ -916,6 +916,17 @@ function Bpmn({
       });
     return () => modeler.current?.destroy();
   }, [answers, generatedStepCount, mapView]);
+  useEffect(() => {
+    const palette = host.current?.querySelector(
+      ".djs-palette",
+    ) as HTMLElement | null;
+    if (palette) palette.style.display = editMode ? "block" : "none";
+    requestAnimationFrame(() => {
+      const canvas = modeler.current?.get("canvas");
+      canvas?.resized();
+      canvas?.zoom("fit-viewport");
+    });
+  }, [editMode]);
   async function load(e: any) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -997,6 +1008,9 @@ function Bpmn({
             {status}
           </span>
           <div>
+            <button onClick={() => setEditMode((value) => !value)}>
+              {editMode ? "Hide editing tools" : "Edit map"}
+            </button>
             <button onClick={() => modeler.current?.get("commandStack").undo()}>
               Undo
             </button>
