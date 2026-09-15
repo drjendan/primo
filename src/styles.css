@@ -139,6 +139,24 @@ aside nav {
   flex: 1;
   padding: 13px 9px;
 }
+.navSection {
+  display: block;
+  color: #7f9690;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.1px;
+  padding: 14px 12px 4px;
+}
+.navChild button {
+  padding-left: 25px;
+  font-size: 11px;
+}
+.collapsed .navSection {
+  display: none;
+}
+.collapsed .navChild button {
+  padding-left: 12px;
+}
 aside button {
   width: 100%;
   border: 0;
