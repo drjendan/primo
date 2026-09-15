@@ -97,6 +97,32 @@ const demoAnswers: Answers = {
   objective:
     "Focus on process improvement first and evaluate automation or AI only after the process is standardized.",
 };
+const demoGuidance = [
+  {
+    answer:
+      "Approximately 22% of invoices require correction, rework, or exception handling.",
+    response:
+      "That exception rate is high enough to affect the Process Improvement Score. What are the most common reasons invoices leave the normal path?",
+  },
+  {
+    answer:
+      "Missing purchase orders, incorrect vendor information, duplicate invoices, price differences, and incomplete approvals.",
+    response:
+      "I see several exception categories. Are the matching tolerances and approval rules documented in one place and applied consistently by every team?",
+  },
+  {
+    answer:
+      "No. Matching tolerances vary by invoice type, and different teams sometimes apply the rules differently.",
+    response:
+      "I identified inconsistent decision rules as an AI-supported roadblock. You also listed email, Excel, the supplier portal, and SAP. Where is information entered or checked more than once?",
+  },
+  {
+    answer:
+      "Invoice information is entered in the tracking spreadsheet, checked in the supplier portal, and then entered or confirmed again in SAP.",
+    response:
+      "I identified duplicate entry and multiple system handoffs as another roadblock. Combined with 2.5 days of waiting, the evidence supports process improvement before automation. I now have enough information to generate the current-state map and assessment.",
+  },
+];
 function analyze(a: Answers): Analysis {
   const q = numberFrom(a.quality, 12),
     systems = (a.systems || "").split(/,| and /).filter(Boolean).length || 2,
@@ -595,27 +621,21 @@ function Guided({
 }) {
   const qs = ownerQuestions;
   const [step, setStep] = useState(prefilled ? qs.length : 0);
+  const [demoStage, setDemoStage] = useState(0);
   const [value, setValue] = useState("");
   const [answers, setAnswers] = useState<Answers>(initial);
+  const messagesEnd = useRef<HTMLDivElement>(null);
   const [messages, setMessages] = useState<Message[]>(() =>
     prefilled
       ? [
           {
             role: "ai",
-            text: "Demo scenario loaded. I will show the Process Owner discovery used to create the current-state analysis.",
+            text: "Demo scenario loaded. I reviewed the Process Owner intake for Vendor Invoice Review and will now demonstrate how Primo augments discovery with contextual follow-up questions.",
           },
-          ...qs.flatMap((q, i) => [
-            { role: "ai" as const, text: q.question },
-            { role: "user" as const, text: initial[q.id] },
-            ...(i === qs.length - 1
-              ? [
-                  {
-                    role: "ai" as const,
-                    text: "Discovery is complete. The answers indicate an inefficient process with rework, waiting, inconsistent rules, and several manual system handoffs. Primo is ready to generate the current-state map.",
-                  },
-                ]
-              : []),
-          ]),
+          {
+            role: "ai",
+            text: "You indicated that some invoices require correction or exception handling. Approximately what percentage of transactions are affected?",
+          },
         ]
       : [
           {
@@ -626,6 +646,22 @@ function Guided({
           },
         ],
   );
+  useEffect(() => {
+    messagesEnd.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  function advanceDemo() {
+    if (demoStage >= demoGuidance.length) {
+      onComplete(initial);
+      return;
+    }
+    const exchange = demoGuidance[demoStage];
+    setMessages((current) => [
+      ...current,
+      { role: "user", text: exchange.answer },
+      { role: "ai", text: exchange.response },
+    ]);
+    setDemoStage((current) => current + 1);
+  }
   function followUp(q: Question, v: string) {
     if (q.id === "steps" && !/\d|then|next/i.test(v))
       return "To build the map accurately, please describe the sequence using numbered steps or words such as “then” and “next.”";
@@ -705,6 +741,7 @@ function Guided({
                 </div>
               </div>
             ))}
+            <div ref={messagesEnd} />
           </div>
           <div className="composer">
             <label>
@@ -715,10 +752,18 @@ function Guided({
               </small>
             </label>
             {prefilled ? (
-              <div className="demoContinue">
-                <button className="primary" onClick={() => onComplete(initial)}>
+              <div className="demoResponse">
+                {demoStage < demoGuidance.length && (
+                  <div>
+                    <small>PROCESS OWNER DEMO RESPONSE</small>
+                    <p>{demoGuidance[demoStage].answer}</p>
+                  </div>
+                )}
+                <button className="primary" onClick={advanceDemo}>
                   <Sparkles />
-                  Generate current-state map
+                  {demoStage < demoGuidance.length
+                    ? `Submit response ${demoStage + 1} of ${demoGuidance.length}`
+                    : "Generate current-state map"}
                 </button>
               </div>
             ) : (
