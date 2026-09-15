@@ -606,6 +606,37 @@ aside.collapsed + main {
   background: var(--green);
   color: #fff;
 }
+.demoContinue {
+  justify-content: flex-end !important;
+}
+.demoContinue .primary {
+  width: auto;
+  padding: 9px 15px;
+}
+.demoNext {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 12px;
+  padding: 11px 14px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.demoNext > span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+  font-size: 10px;
+  font-weight: 700;
+}
+.demoNext .primary {
+  width: auto;
+}
+.demoNext .primary svg {
+  margin-left: 3px;
+}
 .tabs {
   display: flex;
   border-bottom: 1px solid var(--line);

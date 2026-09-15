@@ -60,6 +60,43 @@ const nav: [Page, any, string][] = [
 ];
 const numberFrom = (s: string, fallback: number) =>
   Number((s || "").match(/\d+(\.\d+)?/)?.[0] || fallback);
+const demoAnswers: Answers = {
+  name: "Vendor Invoice Review",
+  description:
+    "The Accounts Payable team receives vendor invoices, validates them against purchase orders, routes approvals, resolves exceptions, and releases approved invoices for payment.",
+  trigger: "A vendor invoice arrives by email or through the supplier portal.",
+  outcome:
+    "The invoice is approved, recorded in SAP, and released for payment.",
+  department: "Finance - Accounts Payable",
+  problem:
+    "Reviews take too long because staff move between email, Excel, the supplier portal, and SAP. Information is checked more than once and exceptions are handled inconsistently.",
+  success:
+    "Reduce cycle time and rework while preserving financial approvals and separation-of-duty controls.",
+  urgency:
+    "High. Leadership wants measurable improvement before the next quarterly close.",
+  businessOwner: "Vice President of Accounts Payable",
+  sme: "Senior Accounts Payable Analyst",
+  documentation:
+    "An outdated SOP and several team job aids exist, but they do not describe all exception paths.",
+  frequency: "Daily, approximately 12,500 invoices per year.",
+  systems: "Email, Excel, supplier portal, and SAP",
+  steps:
+    "1. Receive invoice by email or portal. 2. Enter invoice details into the tracking spreadsheet. 3. Open SAP and locate the purchase order. 4. Compare invoice data with the purchase order. 5. Email the requester when information does not match. 6. Wait for a correction or approval. 7. Re-enter corrected information. 8. Route the invoice for manager approval. 9. Record the approval in SAP. 10. Release the invoice for payment.",
+  decisions:
+    "Invoices above $50,000 require an additional approval, but matching tolerances differ by invoice type and are not documented in one location.",
+  exceptions:
+    "Missing purchase orders, incorrect vendor information, duplicate invoices, price differences, and incomplete approvals cause items to be returned and reworked.",
+  timing:
+    "About 18 minutes of active work and an average of 2.5 days of waiting for approvals or exception resolution.",
+  quality: "22% require correction, rework, or exception handling.",
+  controls:
+    "Manager approval, separation of invoice entry and payment release, approval timestamps, audit evidence, and restricted SAP access must remain.",
+  stability:
+    "The process is mostly stable, but teams apply matching rules differently and minor SAP changes are planned next year.",
+  data: "Invoices are digital, but formats vary and some arrive as scanned PDFs or unstructured email attachments.",
+  objective:
+    "Focus on process improvement first and evaluate automation or AI only after the process is standardized.",
+};
 function analyze(a: Answers): Analysis {
   const q = numberFrom(a.quality, 12),
     systems = (a.systems || "").split(/,| and /).filter(Boolean).length || 2,
@@ -282,6 +319,7 @@ function Title({
 function App() {
   const [page, setPage] = useState<Page>("dashboard");
   const [collapsed, setCollapsed] = useState(false);
+  const [demoMode, setDemoMode] = useState(false);
   const [answers, setAnswers] = useState<Answers>(() =>
     JSON.parse(localStorage.getItem("primo-demo-answers") || "{}"),
   );
@@ -290,6 +328,18 @@ function App() {
     setAnswers(a);
     localStorage.setItem("primo-demo-answers", JSON.stringify(a));
     setPage("bpmn");
+  }
+  function runDemo() {
+    setAnswers(demoAnswers);
+    localStorage.setItem("primo-demo-answers", JSON.stringify(demoAnswers));
+    setDemoMode(true);
+    setPage("owner");
+  }
+  function startDiscovery() {
+    setAnswers({});
+    localStorage.removeItem("primo-demo-answers");
+    setDemoMode(false);
+    setPage("owner");
   }
   return (
     <>
@@ -314,33 +364,60 @@ function App() {
           </button>
         </aside>
         <main>
-          {page === "dashboard" && <Dashboard go={setPage} />}{" "}
+          {page === "dashboard" && (
+            <Dashboard
+              go={setPage}
+              runDemo={runDemo}
+              startDiscovery={startDiscovery}
+            />
+          )}{" "}
           {page === "repository" && <Repository go={setPage} />}{" "}
           {page === "owner" && (
-            <Guided initial={answers} onComplete={complete} />
+            <Guided
+              initial={answers}
+              prefilled={demoMode}
+              onComplete={complete}
+            />
           )}{" "}
           {page === "workspace" && <Workspace go={setPage} />}{" "}
-          {page === "bpmn" && <Bpmn result={result} answers={answers} />}{" "}
-          {page === "diagnosis" && <Diagnosis result={result} />}{" "}
-          {page === "improvements" && <Improvements result={result} />}{" "}
-          {page === "readiness" && <Readiness result={result} />}{" "}
+          {page === "bpmn" && (
+            <Bpmn result={result} answers={answers} go={setPage} />
+          )}{" "}
+          {page === "diagnosis" && <Diagnosis result={result} go={setPage} />}{" "}
+          {page === "improvements" && (
+            <Improvements result={result} go={setPage} />
+          )}{" "}
+          {page === "readiness" && <Readiness result={result} go={setPage} />}{" "}
           {page === "reports" && <Reports result={result} />}
         </main>
       </div>
     </>
   );
 }
-function Dashboard({ go }: { go: (p: Page) => void }) {
+function Dashboard({
+  go,
+  runDemo,
+  startDiscovery,
+}: {
+  go: (p: Page) => void;
+  runDemo: () => void;
+  startDiscovery: () => void;
+}) {
   return (
     <div className="page">
       <Title
         title="Good afternoon, Danielle"
         sub="Here is the current Primo process portfolio."
         action={
-          <button className="primary" onClick={() => go("owner")}>
-            <Sparkles />
-            Start discovery
-          </button>
+          <div className="actions">
+            <button className="outline" onClick={startDiscovery}>
+              Start blank discovery
+            </button>
+            <button className="primary" onClick={runDemo}>
+              <Sparkles />
+              Run prefilled demo
+            </button>
+          </div>
         }
       />
       <div className="metrics">
@@ -498,23 +575,46 @@ function Repository({ go }: { go: (p: Page) => void }) {
 }
 function Guided({
   initial,
+  prefilled,
   onComplete,
 }: {
   initial: Answers;
+  prefilled: boolean;
   onComplete: (a: Answers) => void;
 }) {
   const qs = ownerQuestions;
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(prefilled ? qs.length : 0);
   const [value, setValue] = useState("");
   const [answers, setAnswers] = useState<Answers>(initial);
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "ai",
-      text:
-        "I will guide you through the business context and current-state process. " +
-        qs[0].question,
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    prefilled
+      ? [
+          {
+            role: "ai",
+            text: "Demo scenario loaded. I will show the Process Owner discovery used to create the current-state analysis.",
+          },
+          ...qs.flatMap((q, i) => [
+            { role: "ai" as const, text: q.question },
+            { role: "user" as const, text: initial[q.id] },
+            ...(i === qs.length - 1
+              ? [
+                  {
+                    role: "ai" as const,
+                    text: "Discovery is complete. The answers indicate an inefficient process with rework, waiting, inconsistent rules, and several manual system handoffs. Primo is ready to generate the current-state map.",
+                  },
+                ]
+              : []),
+          ]),
+        ]
+      : [
+          {
+            role: "ai",
+            text:
+              "I will guide you through the business context and current-state process. " +
+              qs[0].question,
+          },
+        ],
+  );
   function followUp(q: Question, v: string) {
     if (q.id === "steps" && !/\d|then|next/i.test(v))
       return "To build the map accurately, please describe the sequence using numbered steps or words such as “then” and “next.”";
@@ -619,22 +719,31 @@ function Guided({
                 Primo asks clarifying questions when an answer is incomplete.
               </small>
             </label>
-            <div>
-              <textarea
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    send();
-                  }
-                }}
-                placeholder="Type your answer. You can also say “I don’t know.”"
-              />
-              <button onClick={send}>
-                <Send />
-              </button>
-            </div>
+            {prefilled ? (
+              <div className="demoContinue">
+                <button className="primary" onClick={() => onComplete(initial)}>
+                  <Sparkles />
+                  Generate current-state map
+                </button>
+              </div>
+            ) : (
+              <div>
+                <textarea
+                  value={value}
+                  onChange={(e) => setValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send();
+                    }
+                  }}
+                  placeholder="Type your answer. You can also say “I don’t know.”"
+                />
+                <button onClick={send}>
+                  <Send />
+                </button>
+              </div>
+            )}
           </div>
         </section>
       </div>
@@ -754,7 +863,15 @@ function Score({ n, label }: { n: number; label: string }) {
     </div>
   );
 }
-function Bpmn({ result, answers }: { result: Analysis; answers: Answers }) {
+function Bpmn({
+  result,
+  answers,
+  go,
+}: {
+  result: Analysis;
+  answers: Answers;
+  go: (p: Page) => void;
+}) {
   const host = useRef<HTMLDivElement>(null),
     modeler = useRef<any>();
   const [status, setStatus] = useState(
@@ -764,7 +881,9 @@ function Bpmn({ result, answers }: { result: Analysis; answers: Answers }) {
     if (!host.current) return;
     modeler.current = new Modeler({ container: host.current });
     modeler.current
-      .importXML(Object.keys(answers).length ? generatedBpmn(answers) : sampleBpmn)
+      .importXML(
+        Object.keys(answers).length ? generatedBpmn(answers) : sampleBpmn,
+      )
       .then(() => modeler.current.get("canvas").zoom("fit-viewport"));
     return () => modeler.current?.destroy();
   }, [answers]);
@@ -848,12 +967,42 @@ function Bpmn({ result, answers }: { result: Analysis; answers: Answers }) {
               <span>
                 <b>{x.title}</b>
                 <small>{x.detail}</small>
-                <small>Confidence: {i === 0 ? "High" : "Medium"} · Evidence: discovery response and process structure</small>
+                <small>
+                  Confidence: {i === 0 ? "High" : "Medium"} · Evidence:
+                  discovery response and process structure
+                </small>
               </span>
             </button>
           ))}
         </section>
       </div>
+      <DemoNext
+        go={go}
+        next="diagnosis"
+        label="Continue to roadblocks and score"
+      />
+    </div>
+  );
+}
+function DemoNext({
+  go,
+  next,
+  label,
+}: {
+  go: (p: Page) => void;
+  next: Page;
+  label: string;
+}) {
+  return (
+    <div className="demoNext">
+      <span>
+        <CheckCircle2 />
+        Demo stage complete
+      </span>
+      <button className="primary" onClick={() => go(next)}>
+        {label}
+        <ArrowRight />
+      </button>
     </div>
   );
 }
@@ -883,7 +1032,13 @@ function Bars({ items = cats }: { items?: any[] }) {
     </div>
   );
 }
-function Diagnosis({ result }: { result: Analysis }) {
+function Diagnosis({
+  result,
+  go,
+}: {
+  result: Analysis;
+  go: (p: Page) => void;
+}) {
   return (
     <div className="page">
       <Title
@@ -925,10 +1080,21 @@ function Diagnosis({ result }: { result: Analysis }) {
           ))}
         </div>
       </section>
+      <DemoNext
+        go={go}
+        next="improvements"
+        label="Continue to recommendations"
+      />
     </div>
   );
 }
-function Improvements({ result }: { result: Analysis }) {
+function Improvements({
+  result,
+  go,
+}: {
+  result: Analysis;
+  go: (p: Page) => void;
+}) {
   return (
     <div className="page">
       <Title
@@ -964,10 +1130,21 @@ function Improvements({ result }: { result: Analysis }) {
           </div>
         </section>
       ))}
+      <DemoNext
+        go={go}
+        next="readiness"
+        label="Continue to readiness assessment"
+      />
     </div>
   );
 }
-function Readiness({ result }: { result: Analysis }) {
+function Readiness({
+  result,
+  go,
+}: {
+  result: Analysis;
+  go: (p: Page) => void;
+}) {
   const factors = [
     ["Process stability", Math.min(90, result.readiness + 12)],
     ["Rule clarity", Math.max(35, result.readiness - 6)],
@@ -1025,6 +1202,7 @@ function Readiness({ result }: { result: Analysis }) {
           ))}
         </section>
       </div>
+      <DemoNext go={go} next="reports" label="Continue to PrimeOne handoff" />
     </div>
   );
 }
