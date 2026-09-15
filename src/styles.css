@@ -859,6 +859,11 @@ blockquote {
   position: relative;
   background: #fbfcfc;
 }
+.canvas > .djs-container,
+.canvas > .djs-container > svg {
+  width: 100% !important;
+  height: 100% !important;
+}
 .findings {
   border-left: 1px solid var(--line);
   padding: 15px;
