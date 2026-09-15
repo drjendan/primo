@@ -772,8 +772,52 @@ blockquote {
 .actions label input {
   display: none;
 }
+.mapTabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.mapTabs button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  border-radius: 7px;
+  padding: 8px 12px;
+  font-size: 10px;
+  font-weight: 700;
+}
+.mapTabs button.active {
+  border-color: var(--green);
+  background: var(--pale);
+  color: #245f4b;
+}
+.mapTabs small {
+  margin-left: 6px;
+  font-size: 7px;
+  letter-spacing: 0.7px;
+}
+.blockerNotice {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid #ead18c;
+  border-left: 4px solid var(--gold);
+  background: #fff9e9;
+  color: #66511c;
+  border-radius: 7px;
+  padding: 8px 11px;
+  margin-bottom: 8px;
+  font-size: 9px;
+}
+.blockerNotice svg {
+  width: 18px;
+}
+.blockerNotice span {
+  display: flex;
+  flex-direction: column;
+}
 .editor {
-  height: calc(100vh - 180px);
+  height: calc(100vh - 250px);
   min-height: 590px;
   background: #fff;
   border: 1px solid var(--line);
@@ -856,6 +900,33 @@ blockquote {
 .findings small {
   font-size: 9px;
   color: var(--muted);
+}
+.draftApproval {
+  border-top: 1px solid var(--line);
+  margin-top: 14px;
+  padding-top: 12px;
+}
+.draftApproval span {
+  display: block;
+  color: var(--muted);
+  font-size: 9px;
+  margin-bottom: 7px;
+}
+.draftApproval button {
+  display: flex;
+  grid-template-columns: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: #fff;
+  background: var(--green);
+  border-color: var(--green);
+}
+.draftApproval button:disabled {
+  opacity: 0.65;
+}
+.draftApproval button svg {
+  width: 13px;
 }
 .highlight .djs-visual > :nth-child(1) {
   stroke: #d96d28 !important;

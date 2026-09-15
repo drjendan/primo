@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import Modeler from "bpmn-js/lib/Modeler";
 import {
+  AlertTriangle,
   ArrowRight,
   BarChart3,
   Bot,
@@ -137,7 +138,7 @@ function analyze(a: Answers): Analysis {
     roadblocks.push({
       title: "High exception and rework rate",
       detail: `Approximately ${q}% of transactions require correction or exception handling.`,
-      element: "Exception",
+      element: "Task4",
     });
   if (systems > 2)
     roadblocks.push({
@@ -150,7 +151,7 @@ function analyze(a: Answers): Analysis {
       title: "Business rules need clarification",
       detail:
         "Decision criteria are not specific enough to support a consistent target state.",
-      element: "Match",
+      element: "Task3",
     });
   if (stable < 60)
     roadblocks.push({
@@ -163,7 +164,7 @@ function analyze(a: Answers): Analysis {
     roadblocks.push({
       title: "Contradiction requires validation",
       detail: `The discovery says there are no exceptions, but the stated rework or exception rate is ${q}%. Primo requires confirmation before approval.`,
-      element: "Exception",
+      element: "Task4",
     });
   if (!roadblocks.length)
     roadblocks.push({
@@ -210,7 +211,7 @@ function generatedBpmn(a: Answers) {
     .split(/\n|\d+[.)]|, then | then |,/i)
     .map((x) => x.trim())
     .filter((x) => x.length > 2)
-    .slice(0, 5);
+    .slice(0, 12);
   const steps = raw.length
     ? raw
     : ["Review request", "Validate information", "Complete process"];
@@ -228,10 +229,7 @@ function generatedBpmn(a: Answers) {
         (_, i) =>
           `<bpmn:sequenceFlow id="F${i + 1}" sourceRef="${i === 0 ? "Review" : "Task" + i}" targetRef="Task${i + 1}"/>`,
       ),
-    `<bpmn:sequenceFlow id="F${steps.length}" sourceRef="${steps.length === 1 ? "Review" : "Task" + (steps.length - 1)}" targetRef="Match"/>`,
-    `<bpmn:sequenceFlow id="Fyes" name="Normal" sourceRef="Match" targetRef="End"/>`,
-    `<bpmn:sequenceFlow id="Fno" name="Exception" sourceRef="Match" targetRef="Exception"/>`,
-    `<bpmn:sequenceFlow id="Frejoin" sourceRef="Exception" targetRef="End"/>`,
+    `<bpmn:sequenceFlow id="F${steps.length}" sourceRef="${steps.length === 1 ? "Review" : "Task" + (steps.length - 1)}" targetRef="End"/>`,
   ].join("");
   const shapes = steps
     .map(
@@ -247,14 +245,21 @@ function generatedBpmn(a: Answers) {
         (_, i) =>
           `<bpmndi:BPMNEdge id="E${i + 1}" bpmnElement="F${i + 1}"><di:waypoint x="${305 + i * 145}" y="215"/><di:waypoint x="${345 + i * 145}" y="215"/></bpmndi:BPMNEdge>`,
       ),
-    `<bpmndi:BPMNEdge id="EtoG" bpmnElement="F${steps.length}"><di:waypoint x="${305 + (steps.length - 1) * 145}" y="215"/><di:waypoint x="${350 + (steps.length - 1) * 145}" y="215"/></bpmndi:BPMNEdge>`,
-    `<bpmndi:BPMNEdge id="Eyes" bpmnElement="Fyes"><di:waypoint x="${400 + (steps.length - 1) * 145}" y="215"/><di:waypoint x="${500 + (steps.length - 1) * 145}" y="215"/></bpmndi:BPMNEdge>`,
-    `<bpmndi:BPMNEdge id="Eno" bpmnElement="Fno"><di:waypoint x="${375 + (steps.length - 1) * 145}" y="240"/><di:waypoint x="${375 + (steps.length - 1) * 145}" y="310"/></bpmndi:BPMNEdge>`,
-    `<bpmndi:BPMNEdge id="Ere" bpmnElement="Frejoin"><di:waypoint x="${425 + (steps.length - 1) * 145}" y="345"/><di:waypoint x="${518 + (steps.length - 1) * 145}" y="233"/></bpmndi:BPMNEdge>`,
+    `<bpmndi:BPMNEdge id="EtoEnd" bpmnElement="F${steps.length}"><di:waypoint x="${305 + (steps.length - 1) * 145}" y="215"/><di:waypoint x="${365 + (steps.length - 1) * 145}" y="215"/></bpmndi:BPMNEdge>`,
   ].join("");
-  const gx = 350 + (steps.length - 1) * 145,
-    ex = 500 + (steps.length - 1) * 145;
-  return `<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://bpmn.io/schema/bpmn"><bpmn:process id="GeneratedProcess" isExecutable="false"><bpmn:startEvent id="Start" name="${xmlSafe(a.trigger || "Process starts")}"><bpmn:outgoing>F0</bpmn:outgoing></bpmn:startEvent>${taskXml}<bpmn:exclusiveGateway id="Match" name="Normal path?"><bpmn:incoming>F${steps.length}</bpmn:incoming><bpmn:outgoing>Fyes</bpmn:outgoing><bpmn:outgoing>Fno</bpmn:outgoing></bpmn:exclusiveGateway><bpmn:task id="Exception" name="Resolve exception"><bpmn:incoming>Fno</bpmn:incoming><bpmn:outgoing>Frejoin</bpmn:outgoing></bpmn:task><bpmn:endEvent id="End" name="${xmlSafe(a.outcome || "Process complete")}"><bpmn:incoming>Fyes</bpmn:incoming><bpmn:incoming>Frejoin</bpmn:incoming></bpmn:endEvent>${flows}</bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="GeneratedProcess"><bpmndi:BPMNShape id="StartS" bpmnElement="Start"><dc:Bounds x="120" y="197" width="36" height="36"/></bpmndi:BPMNShape>${shapes}<bpmndi:BPMNShape id="GS" bpmnElement="Match" isMarkerVisible="true"><dc:Bounds x="${gx}" y="190" width="50" height="50"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="XS" bpmnElement="Exception"><dc:Bounds x="${gx - 25}" y="310" width="105" height="70"/></bpmndi:BPMNShape><bpmndi:BPMNShape id="EndS" bpmnElement="End"><dc:Bounds x="${ex}" y="197" width="36" height="36"/></bpmndi:BPMNShape>${edges}</bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+  const ex = 365 + (steps.length - 1) * 145;
+  return `<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://bpmn.io/schema/bpmn"><bpmn:process id="GeneratedProcess" isExecutable="false"><bpmn:startEvent id="Start" name="${xmlSafe(a.trigger || "Process starts")}"><bpmn:outgoing>F0</bpmn:outgoing></bpmn:startEvent>${taskXml}<bpmn:endEvent id="End" name="${xmlSafe(a.outcome || "Process complete")}"><bpmn:incoming>F${steps.length}</bpmn:incoming></bpmn:endEvent>${flows}</bpmn:process><bpmndi:BPMNDiagram><bpmndi:BPMNPlane bpmnElement="GeneratedProcess"><bpmndi:BPMNShape id="StartS" bpmnElement="Start"><dc:Bounds x="120" y="197" width="36" height="36"/></bpmndi:BPMNShape>${shapes}<bpmndi:BPMNShape id="EndS" bpmnElement="End"><dc:Bounds x="${ex}" y="197" width="36" height="36"/></bpmndi:BPMNShape>${edges}</bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>`;
+}
+function futureBpmn(a: Answers) {
+  return generatedBpmn({
+    ...a,
+    trigger:
+      "A vendor invoice is received through the controlled intake channel.",
+    steps:
+      "1. Capture invoice from email or supplier portal. 2. Extract and validate required invoice data. 3. Match invoice to the purchase order using one approved decision table. 4. Route exceptions by reason to an assigned resolution queue. 5. Route matched invoices through value-based approval. 6. Record approval evidence in SAP. 7. Release the approved invoice for payment.",
+    outcome:
+      "The approved invoice and its audit evidence are recorded in SAP and released for payment.",
+  });
 }
 function Logo() {
   return (
@@ -874,19 +879,37 @@ function Bpmn({
 }) {
   const host = useRef<HTMLDivElement>(null),
     modeler = useRef<any>();
-  const [status, setStatus] = useState(
-    "Current-state map generated from discovery",
-  );
+  const [mapView, setMapView] = useState<"current" | "future">("current");
+  const [futureApproved, setFutureApproved] = useState(false);
+  const generatedStepCount = (answers.steps || "")
+    .split(/\n|\d+[.)]|, then | then |,/i)
+    .map((x) => x.trim())
+    .filter((x) => x.length > 2).length;
+  const [status, setStatus] = useState("");
   useEffect(() => {
     if (!host.current) return;
     modeler.current = new Modeler({ container: host.current });
+    const isFuture = mapView === "future";
     modeler.current
       .importXML(
-        Object.keys(answers).length ? generatedBpmn(answers) : sampleBpmn,
+        Object.keys(answers).length
+          ? isFuture
+            ? futureBpmn(answers)
+            : generatedBpmn(answers)
+          : sampleBpmn,
       )
-      .then(() => modeler.current.get("canvas").zoom("fit-viewport"));
+      .then(() => {
+        modeler.current.get("canvas").zoom("fit-viewport");
+        setStatus(
+          isFuture
+            ? "AI-generated future-state draft · awaiting process owner approval"
+            : generatedStepCount
+              ? `${generatedStepCount} as-is steps generated from discovery`
+              : "Current-state map generated from discovery",
+        );
+      });
     return () => modeler.current?.destroy();
-  }, [answers]);
+  }, [answers, generatedStepCount, mapView]);
   async function load(e: any) {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -903,16 +926,26 @@ function Bpmn({
     const a = document.createElement("a");
     a.href = URL.createObjectURL(new Blob([x], { type: "application/xml" }));
     a.download =
-      (result.name || "current-state").toLowerCase().replace(/\s+/g, "-") +
-      ".bpmn";
+      (result.name || "process").toLowerCase().replace(/\s+/g, "-") +
+      (mapView === "current"
+        ? "-current-state.bpmn"
+        : "-future-state-draft.bpmn");
     a.click();
   }
   return (
     <div className="page bpmn">
       <Title
         eyebrow={result.name.toUpperCase()}
-        title="Generated Current-State Map"
-        sub="Primo converted the discovery into an editable BPMN model and linked roadblocks to process elements."
+        title={
+          mapView === "current"
+            ? "Current-State Process Map"
+            : "Suggested Future-State Draft"
+        }
+        sub={
+          mapView === "current"
+            ? "A faithful, editable view of the process exactly as described during discovery. AI findings are overlays and do not change the as-is flow."
+            : "A separate draft that applies Primo's suggested improvements. It does not replace the current state until the process owner approves it."
+        }
         action={
           <div className="actions">
             <label className="outline">
@@ -927,6 +960,30 @@ function Bpmn({
           </div>
         }
       />
+      <div className="mapTabs" role="tablist" aria-label="Process map views">
+        <button
+          className={mapView === "current" ? "active" : ""}
+          onClick={() => setMapView("current")}
+        >
+          Current State <small>AS IS</small>
+        </button>
+        <button
+          className={mapView === "future" ? "active" : ""}
+          onClick={() => setMapView("future")}
+        >
+          Future-State Draft <small>PROPOSED</small>
+        </button>
+      </div>
+      {mapView === "current" && (
+        <div className="blockerNotice">
+          <AlertTriangle />
+          <span>
+            <b>Primo AI identified {result.roadblocks.length} blockers</b>
+            These are analysis overlays—not changes to the current-state
+            process. Select a blocker to locate it on the map.
+          </span>
+        </div>
+      )}
       <div className="editor">
         <div className="toolbar">
           <span>
@@ -951,15 +1008,39 @@ function Bpmn({
         </div>
         <div ref={host} className="canvas" />
         <section className="findings">
-          <em>AI FINDINGS</em>
-          <h2>Roadblocks</h2>
-          <p>Select a finding to highlight its related map element.</p>
-          {result.roadblocks.map((x, i) => (
+          <em>
+            {mapView === "current"
+              ? "AI BLOCKER OVERLAY"
+              : "AI SUGGESTED DRAFT"}
+          </em>
+          <h2>
+            {mapView === "current"
+              ? "Identified blockers"
+              : "Suggested improvements"}
+          </h2>
+          <p>
+            {mapView === "current"
+              ? "Select a blocker to highlight the affected process element."
+              : "These changes are proposed for review and remain separate from the as-is map."}
+          </p>
+          {(mapView === "current"
+            ? result.roadblocks
+            : result.recommendations.map((recommendation, i) => ({
+                title: `Improvement ${i + 1}`,
+                detail: recommendation,
+                element: "",
+              }))
+          ).map((x, i) => (
             <button
               key={x.title}
               onClick={() => {
+                if (mapView !== "current") return;
                 const c = modeler.current.get("canvas");
-                c.addMarker(x.element, "highlight");
+                const registry = modeler.current.get("elementRegistry");
+                c.addMarker(
+                  registry.get(x.element) ? x.element : "Review",
+                  "highlight",
+                );
                 c.zoom("fit-viewport");
               }}
             >
@@ -967,13 +1048,31 @@ function Bpmn({
               <span>
                 <b>{x.title}</b>
                 <small>{x.detail}</small>
-                <small>
-                  Confidence: {i === 0 ? "High" : "Medium"} · Evidence:
-                  discovery response and process structure
-                </small>
+                {mapView === "current" && (
+                  <small>
+                    Confidence: {i === 0 ? "High" : "Medium"} · Evidence:
+                    discovery response and process structure
+                  </small>
+                )}
               </span>
             </button>
           ))}
+          {mapView === "future" && (
+            <div className="draftApproval">
+              <span>
+                {futureApproved
+                  ? "Approved for demo"
+                  : "Draft · approval required"}
+              </span>
+              <button
+                onClick={() => setFutureApproved(true)}
+                disabled={futureApproved}
+              >
+                <CheckCircle2 />
+                {futureApproved ? "Approved" : "Approve draft"}
+              </button>
+            </div>
+          )}
         </section>
       </div>
       <DemoNext
