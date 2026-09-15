@@ -385,6 +385,7 @@ function App() {
               initial={answers}
               prefilled={demoMode}
               onComplete={complete}
+              go={setPage}
             />
           )}{" "}
           {page === "workspace" && <Workspace go={setPage} />}{" "}
@@ -396,7 +397,7 @@ function App() {
             <Improvements result={result} go={setPage} />
           )}{" "}
           {page === "readiness" && <Readiness result={result} go={setPage} />}{" "}
-          {page === "reports" && <Reports result={result} />}
+          {page === "reports" && <Reports result={result} go={setPage} />}
         </main>
       </div>
     </>
@@ -585,10 +586,12 @@ function Guided({
   initial,
   prefilled,
   onComplete,
+  go,
 }: {
   initial: Answers;
   prefilled: boolean;
   onComplete: (a: Answers) => void;
+  go: (p: Page) => void;
 }) {
   const qs = ownerQuestions;
   const [step, setStep] = useState(prefilled ? qs.length : 0);
@@ -739,6 +742,13 @@ function Guided({
           </div>
         </section>
       </div>
+      <DemoNext
+        go={go}
+        back="dashboard"
+        backLabel="Back to dashboard"
+        next="workspace"
+        label="Continue to process description"
+      />
     </div>
   );
 }
@@ -762,7 +772,7 @@ function Workspace({ go }: { go: (p: Page) => void }) {
       <div className="tabs">
         {[
           ["Process Description", "workspace"],
-          ["Discovery", "sme"],
+          ["Discovery", "owner"],
           ["Process Map", "bpmn"],
           ["Diagnosis", "diagnosis"],
           ["Improvements", "improvements"],
@@ -841,6 +851,13 @@ function Workspace({ go }: { go: (p: Page) => void }) {
           ))}
         </div>
       </section>
+      <DemoNext
+        go={go}
+        back="owner"
+        backLabel="Back to discovery"
+        next="bpmn"
+        label="Continue to current-state map"
+      />
     </div>
   );
 }
@@ -1097,6 +1114,8 @@ function Bpmn({
       </div>
       <DemoNext
         go={go}
+        back="workspace"
+        backLabel="Back to process description"
         next="diagnosis"
         label="Continue to roadblocks and score"
       />
@@ -1107,21 +1126,34 @@ function DemoNext({
   go,
   next,
   label,
+  back,
+  backLabel,
 }: {
   go: (p: Page) => void;
-  next: Page;
-  label: string;
+  next?: Page;
+  label?: string;
+  back?: Page;
+  backLabel?: string;
 }) {
   return (
     <div className="demoNext">
+      {back ? (
+        <button className="outline back" onClick={() => go(back)}>
+          ← {backLabel || "Back"}
+        </button>
+      ) : (
+        <span />
+      )}
       <span>
         <CheckCircle2 />
         Demo stage complete
       </span>
-      <button className="primary" onClick={() => go(next)}>
-        {label}
-        <ArrowRight />
-      </button>
+      {next && (
+        <button className="primary" onClick={() => go(next)}>
+          {label || "Continue"}
+          <ArrowRight />
+        </button>
+      )}
     </div>
   );
 }
@@ -1201,6 +1233,8 @@ function Diagnosis({
       </section>
       <DemoNext
         go={go}
+        back="bpmn"
+        backLabel="Back to current-state map"
         next="improvements"
         label="Continue to recommendations"
       />
@@ -1251,6 +1285,8 @@ function Improvements({
       ))}
       <DemoNext
         go={go}
+        back="diagnosis"
+        backLabel="Back to roadblocks"
         next="readiness"
         label="Continue to readiness assessment"
       />
@@ -1321,11 +1357,17 @@ function Readiness({
           ))}
         </section>
       </div>
-      <DemoNext go={go} next="reports" label="Continue to PrimeOne handoff" />
+      <DemoNext
+        go={go}
+        back="improvements"
+        backLabel="Back to recommendations"
+        next="reports"
+        label="Continue to PrimeOne handoff"
+      />
     </div>
   );
 }
-function Reports({ result }: { result: Analysis }) {
+function Reports({ result, go }: { result: Analysis; go: (p: Page) => void }) {
   const [status, setStatus] = useState("Not sent");
   function send() {
     setStatus("Successfully staged for PrimeOne API");
@@ -1383,6 +1425,11 @@ function Reports({ result }: { result: Analysis }) {
           </article>
         ))}
       </div>
+      <DemoNext
+        go={go}
+        back="readiness"
+        backLabel="Back to readiness assessment"
+      />
     </div>
   );
 }
