@@ -633,9 +633,8 @@ aside.collapsed + main {
 }
 .demoResponse {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr;
   gap: 12px;
-  align-items: center;
 }
 .demoResponse > div {
   border: 1px solid #d7e4df;
@@ -655,7 +654,9 @@ aside.collapsed + main {
   margin: 3px 0 0;
 }
 .demoResponse .primary {
-  white-space: nowrap;
+  width: 100%;
+  justify-content: center;
+  padding: 10px 14px;
 }
 .demoNext {
   display: flex;
