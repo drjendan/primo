@@ -748,7 +748,9 @@ function Guided({
               <WandSparkles />
               AI-guided discovery{" "}
               <small>
-                Primo asks clarifying questions when an answer is incomplete.
+                {prefilled
+                  ? "Click the response below to watch Primo analyze it and ask a contextual follow-up."
+                  : "Primo asks clarifying questions when an answer is incomplete."}
               </small>
             </label>
             {prefilled ? (
@@ -762,8 +764,9 @@ function Guided({
                 <button className="primary" onClick={advanceDemo}>
                   <Sparkles />
                   {demoStage < demoGuidance.length
-                    ? `Submit response ${demoStage + 1} of ${demoGuidance.length}`
+                    ? `Continue AI-guided demo · ${demoStage + 1} of ${demoGuidance.length}`
                     : "Generate current-state map"}
+                  <ArrowRight />
                 </button>
               </div>
             ) : (
@@ -787,13 +790,15 @@ function Guided({
           </div>
         </section>
       </div>
-      <DemoNext
-        go={go}
-        back="dashboard"
-        backLabel="Back to dashboard"
-        next="workspace"
-        label="Continue to process description"
-      />
+      {(!prefilled || demoStage >= demoGuidance.length) && (
+        <DemoNext
+          go={go}
+          back="dashboard"
+          backLabel="Back to dashboard"
+          next="workspace"
+          label="Continue to process description"
+        />
+      )}
     </div>
   );
 }
