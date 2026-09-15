@@ -859,8 +859,8 @@ blockquote {
   position: relative;
   background: #fbfcfc;
 }
-.canvas > .djs-container,
-.canvas > .djs-container > svg {
+.canvas .djs-container,
+.canvas .djs-container svg {
   width: 100% !important;
   height: 100% !important;
 }

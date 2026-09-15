@@ -899,7 +899,13 @@ function Bpmn({
           : sampleBpmn,
       )
       .then(() => {
-        modeler.current.get("canvas").zoom("fit-viewport");
+        requestAnimationFrame(() =>
+          requestAnimationFrame(() => {
+            const canvas = modeler.current?.get("canvas");
+            canvas?.resized();
+            canvas?.zoom("fit-viewport");
+          }),
+        );
         setStatus(
           isFuture
             ? "AI-generated future-state draft · awaiting process owner approval"
